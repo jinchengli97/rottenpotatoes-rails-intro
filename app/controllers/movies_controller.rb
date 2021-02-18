@@ -7,7 +7,36 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
+    @all_ratings = ['G', 'PG', 'PG-13', 'R']
+    @sort = params[:sort] || session[:sort]
+    @checked_ratings = params[:ratings] || session[:ratings]
+    
+    if !(params[:sort] == session[:sort] && params[:ratings] == session[:ratings])
+      params[:sort] = session[:sort] = @sort
+      params[:ratings] = session[:ratings] = @checked_ratings
+      flash.keep
+      redirect_to movies_path(:sort=>params[:sort], :ratings =>params[:ratings])
+    end
+    
+    if !@checked_ratings
+      session[:ratings] = {}
+      @all_ratings.each do |rating|
+        session[:ratings][rating] = 1
+      end
+      @checked_ratings = session[:ratings]
+    end
+    
+    @boxes = {}
+    @all_ratings.each do |rating|
+      @boxes[rating] = !@checked_ratings.nil? && @checked_ratings.keys.include?(rating)
+    end
+    session[:sort] = @sort
+    session[:ratings] = @checked_ratings
+    
+    @movies = Movie.order @sort
+    if @checked_ratings
+      @movies = Movie.where(:rating => @checked_ratings.keys).order @sort
+    end
   end
 
   def new
